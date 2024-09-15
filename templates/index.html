@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Language Conversion</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            padding-top: 20px;
+            background-color: #f8f9fa;
+        }
+        .container {
+            max-width: 900px;
+            margin: auto;
+        }
+        h1 {
+            color: #343a40;
+            font-weight: 700;
+        }
+        .video-container {
+    position: relative;
+    height: 500px; /* Set a fixed height */
+    width: 100%; /* Make it take up the full width */
+}
+
+.video-container img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 10px;
+}
+        /* Adjust container widths */
+        .side-by-side {
+            display: flex;
+            justify-content: space-between;
+        }
+        .side-by-side .col-md-6 {
+            width: 48%; /* Adjust the width */
+        }
+        .card {
+            border: none;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+        .card-header {
+            background-color: #007bff;
+            color: white;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        .card-body {
+            padding: 15px;
+        }
+        .side-by-side {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 20px;
+        }
+        .side-by-side .col-md-6 {
+            flex: 1;
+            min-width: 45%;
+        }
+        .btn-primary, .btn-danger {
+            width: 45%;
+            margin: 5px;
+        }
+        .btn-outline-secondary {
+            border-color: #007bff;
+        }
+        .input-group .btn-outline-secondary:hover {
+            background-color: #007bff;
+            color: white;
+        }
+        .list-group-item {
+            background-color: #f1f1f1;
+        }
+        .list-group-item.active {
+            background-color: #007bff;
+            color: white;
+        }
+        #videoPlayer {
+            width: 100%;
+            border-radius: 10px;
+        }
+        button:focus {
+            outline: none;
+        }
+        @media (max-width: 768px) {
+            .btn-primary, .btn-danger {
+                width: 100%;
+            }
+            .side-by-side {
+                flex-direction: column;
+            }
+            .side-by-side .col-md-6 {
+                width: 100%;
+            }
+        }
+    </style>
+
+<script>
+    // Function to update the prediction text, sentence, and last sentence
+    function updateText() {
+        fetch('/current_prediction')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('prediction').innerText = `Sign: ${data.prediction}`;
+                document.getElementById('sentence').innerText = `Sentence making: ${data.sentence}`;
+                document.getElementById('last_sentence').innerText = `Last sentence: ${data.last_sentence}`;
+            })
+            .catch(error => console.error('Error fetching prediction:', error));
+    }
+
+    // Poll the prediction endpoint every second
+    setInterval(updateText, 1000);
+
+    // Function to start the camera
+    function startCamera() {
+        fetch('/start_camera', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message === 'Camera started') {
+                    document.getElementById('videoFeed').src = "/video_feed";
+                    document.getElementById('videoFeed').style.display = 'block';
+                }
+            })
+            .catch(error => console.error('Error starting camera:', error));
+    }
+
+    // Function to stop the camera
+    function stopCamera() {
+        fetch('/stop_camera', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                if (data.message === 'Camera stopped') {
+                    document.getElementById('videoFeed').style.display = 'none';
+                    document.getElementById('videoFeed').src = "";
+                }
+            })
+            .catch(error => console.error('Error stopping camera:', error));
+    }
+</script>
+
+</head>
+<body>
+    <div class="container">
+        <h1 class="text-center mb-4">Sign Language Conversion</h1>
+        
+        <div class="side-by-side">
+            <!-- Live Video Feed Container -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        Live Video Feed
+                    </div>
+                    <div class="card-body video-container">
+                        <img src="" id="videoFeed" alt="Live Video Feed" style="display:none;">
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        Real-Time Prediction
+                    </div>
+                    <div class="card-body">
+                        <p id="prediction">Sign: None</p>
+                        <p id="sentence">Sentence making: </p>
+                        <p id="last_sentence">Last sentence: </p>
+                    </div>
+                </div>
+
+                <!-- Camera Controls -->
+                <div class="card">
+                    <div class="card-header">
+                        Camera Controls
+                    </div>
+                    <div class="card-body text-center">
+                        <button class="btn btn-primary" onclick="startCamera()">Start Camera</button>
+                        <button class="btn btn-danger" onclick="stopCamera()">Stop Camera</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sign Language Animation Generator -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">
+                        Sign Language Animation Generator
+                    </div>
+                    <div class="card-body">
+                        <form action="/animation" method="post">
+                            <div class="input-group mb-3">
+                                <input type="text" name="sen" class="form-control" id="speechToText" placeholder="Enter your text here">
+                                <div class="input-group-append">
+                                    <button type="button" class="btn btn-outline-secondary" onclick="record()">
+                                        <img src="{{ url_for('static', filename='words/mic3.png') }}" alt="Mic Icon" style="width: 20px; height: 20px;">
+                                    </button>
+                                </div>
+                            </div>
+                            <input type="submit" class="btn btn-success w-100" value="Generate Animation">
+                        </form>
+
+                        <div class="keywords mt-4">
+                            <h5>Key Words Identified:</h5>
+                            <ul id="list" class="list-group list-group-horizontal">
+                                {% for word in words %}
+                                    <li id="{{ loop.index0 }}" class="list-group-item">{{ word }}</li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+
+                        <div class="animation-container mt-4">
+                            <h5>Sign Language Animation:</h5>
+                            <video id="videoPlayer" class="mt-2" preload="auto">
+                                <source src="" type="video/mp4">
+                                Your browser does not support HTML5 video.
+                            </video>
+                            <br>
+                            <button onclick="playPause()" class="btn btn-success mt-3">Play/Pause</button>
+                            <div class="loading-spinner" id="loadingSpinner">
+                                <img src="{{ url_for('static', filename='loading.gif') }}" alt="Loading" style="display: none;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bootstrap JS and dependencies -->
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.4/dist/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+
+<script>
+    const video = document.getElementById('video');
+    const startButton = document.getElementById('startButton');
+    const stopButton = document.getElementById('stopButton');
+    const speakButton = document.getElementById('speakButton');
+    const predictionSpan = document.getElementById('prediction');
+    let stream;
+    let intervalId;
+
+    async function startVideo() {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
+        video.srcObject = stream;
+        startButton.disabled = true;
+        stopButton.disabled = false;
+        intervalId = setInterval(predict, 1000); // Predict every second
+    }
+
+    async function stopVideo() {
+        if (stream) {
+            const tracks = stream.getTracks();
+            tracks.forEach(track => track.stop());
+            video.srcObject = null;
+            clearInterval(intervalId); // Stop the prediction interval
+            startButton.disabled = false;
+            stopButton.disabled = true;
+        }
+    }
+
+    function captureFrame() {
+        const canvas = document.createElement('canvas');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        const context = canvas.getContext('2d');
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        return canvas.toDataURL('image/jpeg');
+    }
+
+    async function predict() {
+        const image = captureFrame();
+        try {
+            const response = await fetch('http://127.0.0.1:5000/predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ image: image })
+            });
+
+            const data = await response.json();
+            console.log('Prediction:', data.prediction);
+            predictionSpan.textContent = data.prediction;
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    }
+
+    function speakPrediction() {
+        const prediction = predictionSpan.textContent;
+        if (prediction) {
+            const utterance = new SpeechSynthesisUtterance(prediction);
+            window.speechSynthesis.speak(utterance);
+        }
+    }
+
+    startButton.addEventListener('click', startVideo);
+    stopButton.addEventListener('click', stopVideo);
+    speakButton.addEventListener('click', speakPrediction);
+
+    document.getElementById('predict-form').addEventListener('submit', function(event) {
+        event.preventDefault();
+        let formData = new FormData(this);
+
+        fetch('/word', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.image_path) {
+                document.getElementById('predicted-image').src = data.image_path;
+            } else if (data.image_error) {
+                document.getElementById('predicted-image').src = '';
+                alert(data.image_error);
+            }
+            
+            if (data.video_path) {
+                document.getElementById('video-source').src = data.video_path;
+                document.getElementById('predicted-video').load();
+            } else if (data.video_error) {
+                document.getElementById('video-source').src = '';
+                document.getElementById('predicted-video').load();
+                alert(data.video_error);
+            }
+        })
+        .catch(error => console.error('Error:', error));
+    });
+
+    function record() {
+        var recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+        recognition.lang = 'en-IN';
+
+        recognition.onresult = function(event) {
+            document.getElementById('speechToText').value = event.results[0][0].transcript;
+        }
+        recognition.start();
+    }
+
+    function play() {
+        var videoSource = [];
+        var videos = document.getElementById("list").getElementsByTagName("li");
+        for (var j = 0; j < videos.length; j++) {
+            videoSource[j] = "{{ url_for('static', filename='words/') }}" + videos[j].innerHTML + ".mp4";
+        }
+
+        var i = 0;
+        var videoCount = videoSource.length;
+
+        function videoPlay(videoNum) {
+            document.getElementById("list").getElementsByTagName("li")[videoNum].classList.add("active");
+            document.getElementById("videoPlayer").setAttribute("src", videoSource[videoNum]);
+            document.getElementById("videoPlayer").load();
+            document.getElementById("videoPlayer").play();
+        }
+
+        document.getElementById('videoPlayer').addEventListener('ended', myHandler, false);
+        document.getElementById("list").getElementsByTagName("li")[0].classList.add("active");
+
+        videoPlay(0);
+
+        function myHandler() {
+            document.getElementById("list").getElementsByTagName("li")[i].classList.remove("active");
+            i++;
+            if (i == videoCount) {
+                document.getElementById("videoPlayer").pause();
+            } else {
+                videoPlay(i);
+            }
+        }
+    }
+
+    function playPause() {
+        var videoPlayer = document.getElementById("videoPlayer");
+        if (videoPlayer.paused) {
+            document.getElementById("loadingSpinner").style.display = "block";
+            play();
+            document.getElementById("loadingSpinner").style.display = "none";
+        } else {
+            videoPlayer.pause();
+        }
+    }
+</script>
+</html>
